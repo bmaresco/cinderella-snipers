@@ -59,6 +59,13 @@ export default function PlayerList({ players }: { players: Player[] }) {
   const [sortBy, setSortBy] = useState<SortOption>('name')
   const [ascending, setAscending] = useState(true)
 
+  const sortOptions: { value: SortOption; label: string }[] = [
+    { value: 'name', label: 'Name' },
+    { value: 'team', label: 'Team' },
+    { value: 'next_game', label: 'Next game' },
+    { value: 'market_cap', label: 'Market cap' },
+  ]
+
   const sortedPlayers = useMemo(
     () => sortPlayers(players, sortBy, ascending),
     [players, sortBy, ascending]
@@ -77,6 +84,47 @@ export default function PlayerList({ players }: { players: Player[] }) {
 
   return (
     <div className="space-y-3">
+      {/* Mobile sort controls */}
+      <div className="flex flex-col gap-1 px-4 sm:hidden">
+        <span className="text-xs font-semibold text-black/60">Sort players by</span>
+        <div className="flex items-center gap-2">
+          <select
+            value={sortBy}
+            onChange={(e) => handleHeaderClick(e.target.value as SortOption)}
+            className="flex-1 rounded-lg border border-black/20 bg-white px-3 py-2 text-[13px] font-semibold text-black"
+          >
+            {sortOptions.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+          <button
+            type="button"
+            onClick={() => setAscending((a) => !a)}
+            className="flex h-9 w-9 flex-col items-center justify-center rounded-full border border-black/20 bg-white text-black/60"
+            aria-label={ascending ? 'Sort descending' : 'Sort ascending'}
+          >
+            <svg
+              className={`h-3 w-3 ${ascending ? 'text-[#3a6fa8]' : 'text-black/30'}`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+            </svg>
+            <svg
+              className={`h-3 w-3 ${!ascending ? 'text-[#3a6fa8]' : 'text-black/30'}`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
       {/* Column Headers (desktop only) */}
       <div className="mb-2 ml-[72px] hidden items-center px-4 sm:flex">
         <button
