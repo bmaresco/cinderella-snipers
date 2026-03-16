@@ -77,8 +77,8 @@ export default function PlayerList({ players }: { players: Player[] }) {
 
   return (
     <div className="space-y-3">
-      {/* Column Headers */}
-      <div className="mb-2 ml-[72px] flex items-center px-4">
+      {/* Column Headers (desktop only) */}
+      <div className="mb-2 ml-[72px] hidden items-center px-4 sm:flex">
         <button
           type="button"
           onClick={() => handleHeaderClick('name')}
@@ -113,47 +113,92 @@ export default function PlayerList({ players }: { players: Player[] }) {
       {sortedPlayers.map((player) => (
         <div
           key={player.id}
-          className="flex items-center gap-3 rounded-2xl bg-[#e0e0e0] px-4 py-3 shadow-sm"
+          className="rounded-2xl bg-[#e0e0e0] px-4 py-3 shadow-sm"
         >
-          <div className="h-[52px] w-[52px] flex-shrink-0 overflow-hidden rounded-full bg-[#1a1a1a]">
-            <img
-              src={player.profile_image_url || "/silhouette.png"}
-              alt={player.full_name}
-              className="h-full w-full object-cover"
-              onLoad={(e) => {
-                const img = e.currentTarget
-                // ESPN's generic "no photo" icon is exactly 60x45px
-                if (img.naturalWidth === 60 && img.naturalHeight === 45) {
-                  img.src = "/silhouette.png"
-                }
-              }}
-              onError={(e) => {
-                e.currentTarget.src = "/silhouette.png"
-              }}
-            />
-          </div>
-
-          <div className="w-[120px] flex-shrink-0">
-            <div className="text-[13px] font-black leading-tight text-black">
-              {player.full_name}
+          {/* Mobile layout */}
+          <div className="flex flex-col gap-1 sm:hidden">
+            <div className="flex items-center gap-3">
+              <div className="h-[52px] w-[52px] flex-shrink-0 overflow-hidden rounded-full bg-[#1a1a1a]">
+                <img
+                  src={player.profile_image_url || "/silhouette.png"}
+                  alt={player.full_name}
+                  className="h-full w-full object-cover"
+                  onLoad={(e) => {
+                    const img = e.currentTarget
+                    if (img.naturalWidth === 60 && img.naturalHeight === 45) {
+                      img.src = "/silhouette.png"
+                    }
+                  }}
+                  onError={(e) => {
+                    e.currentTarget.src = "/silhouette.png"
+                  }}
+                />
+              </div>
+              <div className="flex-1">
+                <div className="text-[13px] font-black leading-tight text-black">
+                  {player.full_name}
+                </div>
+              </div>
             </div>
+
+            <div className="text-[13px] font-black text-black">
+              {player.team_name}
+            </div>
+
+            <div className="text-[13px] font-black text-black">
+              {formatNextMatchup(player.next_matchup, player.next_matchup_at)}
+            </div>
+
+            <div className="text-[13px] font-black text-black">
+              {player.market_cap_text ?? '—'}
+            </div>
+
+            <button className="mt-1 w-full rounded-full bg-[#22d412] px-5 py-2 text-[13px] font-black text-black transition hover:scale-105 hover:bg-[#1abf0f] active:scale-95">
+              BUY
+            </button>
           </div>
 
-          <div className="flex-1 text-[13px] font-black text-black">
-            {player.team_name}
-          </div>
+          {/* Desktop layout (unchanged) */}
+          <div className="hidden items-center gap-3 sm:flex">
+            <div className="h-[52px] w-[52px] flex-shrink-0 overflow-hidden rounded-full bg-[#1a1a1a]">
+              <img
+                src={player.profile_image_url || "/silhouette.png"}
+                alt={player.full_name}
+                className="h-full w-full object-cover"
+                onLoad={(e) => {
+                  const img = e.currentTarget
+                  if (img.naturalWidth === 60 && img.naturalHeight === 45) {
+                    img.src = "/silhouette.png"
+                  }
+                }}
+                onError={(e) => {
+                  e.currentTarget.src = "/silhouette.png"
+                }}
+              />
+            </div>
 
-          <div className="flex-1 text-[13px] font-black text-black">
-            {formatNextMatchup(player.next_matchup, player.next_matchup_at)}
-          </div>
+            <div className="w-[120px] flex-shrink-0">
+              <div className="text-[13px] font-black leading-tight text-black">
+                {player.full_name}
+              </div>
+            </div>
 
-          <div className="flex-1 text-[13px] font-black text-black">
-            {player.market_cap_text ?? '—'}
-          </div>
+            <div className="flex-1 text-[13px] font-black text-black">
+              {player.team_name}
+            </div>
 
-          <button className="flex-shrink-0 rounded-full bg-[#22d412] px-5 py-2 text-[13px] font-black text-black transition hover:scale-105 hover:bg-[#1abf0f] active:scale-95">
-            BUY
-          </button>
+            <div className="flex-1 text-[13px] font-black text-black">
+              {formatNextMatchup(player.next_matchup, player.next_matchup_at)}
+            </div>
+
+            <div className="flex-1 text-[13px] font-black text-black">
+              {player.market_cap_text ?? '—'}
+            </div>
+
+            <button className="flex-shrink-0 rounded-full bg-[#22d412] px-5 py-2 text-[13px] font-black text-black transition hover:scale-105 hover:bg-[#1abf0f] active:scale-95">
+              BUY
+            </button>
+          </div>
         </div>
       ))}
     </div>
