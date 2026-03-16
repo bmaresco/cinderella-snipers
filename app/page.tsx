@@ -1,6 +1,10 @@
 import { supabase } from '@/lib/supabase'
 import PlayerList from './PlayerList'
 
+// Always fetch fresh data from Supabase (no build-time caching)
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 type Player = {
   id: number
   slug: string
