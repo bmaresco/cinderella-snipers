@@ -195,7 +195,7 @@ export default function PlayerList({ players }: { players: Player[] }) {
       {sortedPlayers.map((player) => (
         <div
           key={player.id}
-          className="rounded-2xl bg-[#e0e0e0] px-4 py-3 shadow-sm"
+          className="rounded-[999px] bg-white px-4 py-3 shadow-sm sm:px-5"
         >
           {/* Mobile layout */}
           <div className="flex flex-col gap-1 sm:hidden">
@@ -244,13 +244,13 @@ export default function PlayerList({ players }: { players: Player[] }) {
               {player.market_cap_text ?? '—'}
             </div>
 
-            <button className="mt-1 w-full rounded-full bg-[#22d412] px-5 py-2 text-[13px] font-black text-black transition hover:scale-105 hover:bg-[#1abf0f] active:scale-95">
+            <button className="mt-2 w-full rounded-full bg-black px-5 py-2 text-[13px] font-black text-white transition hover:scale-105 hover:bg-black/90 active:scale-95">
               BUY
             </button>
           </div>
 
           {/* Desktop layout (unchanged) */}
-          <div className="hidden items-center gap-3 sm:flex">
+          <div className="hidden items-center gap-4 sm:flex">
             <div className="relative h-[52px] w-[52px] flex-shrink-0 overflow-hidden rounded-full bg-[#1a1a1a]">
               <img
                 src={player.profile_image_url || "/silhouette.png"}
@@ -295,7 +295,7 @@ export default function PlayerList({ players }: { players: Player[] }) {
               {player.market_cap_text ?? '—'}
             </div>
 
-            <button className="flex-shrink-0 rounded-full bg-[#22d412] px-5 py-2 text-[13px] font-black text-black transition hover:scale-105 hover:bg-[#1abf0f] active:scale-95">
+            <button className="flex-shrink-0 rounded-full bg-black px-6 py-2.5 text-[13px] font-black text-white transition hover:scale-105 hover:bg-black/90 active:scale-95">
               BUY
             </button>
           </div>
