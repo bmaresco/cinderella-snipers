@@ -135,12 +135,14 @@ export default async function HomePage() {
       <div className="h-[10px] w-full bg-black" />
 
       {/* Hero Banner */}
-      <section className="w-full">
-        <img
-          src="/banner.png"
-          alt="Cinderella Snipers"
-          className="w-full min-w-full object-cover"
-        />
+      <section className="w-full bg-[#087AB8]">
+        <div className="mx-auto max-w-5xl px-4">
+          <img
+            src="/banner.png"
+            alt="Cinderella Snipers"
+            className="mx-auto h-auto w-full max-w-5xl object-contain"
+          />
+        </div>
       </section>
 
       {/* Logo + tagline */}
