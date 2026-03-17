@@ -134,24 +134,24 @@ export default async function HomePage() {
       {/* Top black bar */}
       <div className="h-[10px] w-full bg-black" />
 
-      {/* Hero Banner */}
-      <section className="relative w-full overflow-hidden">
+      {/* Hero Banner (cropped) */}
+      <section className="relative w-full overflow-hidden h-[260px] sm:h-[320px]">
         <img
           src="/banner.png"
           alt="Cinderella Snipers"
-          className="h-auto w-full object-cover"
+          className="h-full w-full object-cover"
         />
         {/* Left logo */}
         <img
           src="/left-logo.png"
           alt="Left logo"
-          className="absolute bottom-3 left-4 h-10 w-auto"
+          className="absolute bottom-4 left-5 h-12 w-auto"
         />
         {/* Right logo */}
         <img
           src="/right-logo.png"
           alt="Right logo"
-          className="absolute bottom-3 right-4 h-10 w-auto"
+          className="absolute bottom-4 right-5 h-12 w-auto"
         />
       </section>
 
