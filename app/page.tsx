@@ -38,8 +38,7 @@ export default async function HomePage() {
   const players = await getPlayers()
 
   return (
-    <main className="min-h-screen bg-white font-sans">
-
+    <main className="min-h-screen bg-[#f3f3f3] font-sans">
       {/* Hero Banner */}
       <section className="w-full">
         <img
@@ -49,31 +48,33 @@ export default async function HomePage() {
         />
       </section>
 
-      {/* Description Pill */}
-      <div className="mx-auto max-w-2xl px-4 pt-6 pb-2">
-        <div className="w-full rounded-2xl bg-[#3a6fa8] px-7 py-5 text-[15px] font-bold leading-relaxed text-white shadow-md">
-          Cinderella Snipers is a live market where every eligible NCAA tournament shooter is a tradable asset and
-          price is determined entirely by market demand. There are no formulas, stats-based scoring systems, or preset valuation models—only belief, liquidity, and positioning. Participants buy, sell, and rotate capital between player coins as the tournament unfolds, with price discovery driven by attention, performance, and narrative momentum in real time. It's a pure experiment in open price discovery during March Madness.
+      {/* Logo + tagline */}
+      <section className="mx-auto flex max-w-4xl items-start justify-between px-6 pt-10 pb-8">
+        <div className="space-y-6">
+          <div className="text-center sm:text-left">
+            <div className="text-[28px] sm:text-[32px] font-black tracking-[0.35em] uppercase leading-tight">
+              <div>CINDERELLA</div>
+              <div>SNIPERS</div>
+            </div>
+          </div>
+          <p className="max-w-xl text-[11px] sm:text-xs font-semibold leading-6 tracking-[0.16em] text-black/70">
+            EVERY YEAR, SOME RANDOM GUY DEFIES ALL ODDS AND BECOMES
+            THE HERO OF THE TOURNAMENT. WHO WILL IT BE THIS YEAR? IF
+            YOU FIND OUT – YOU GET RICH.
+          </p>
         </div>
-      </div>
-
-      {/* Divider */}
-      <div className="mx-auto flex max-w-2xl items-center gap-4 px-6 py-6">
-        <div className="h-px flex-1 bg-black/20" />
-        <div className="flex h-12 w-12 items-center justify-center rounded-full border border-black/10 bg-white shadow-sm">
-          <svg viewBox="0 0 24 24" className="h-6 w-6 text-black/40" fill="none" stroke="currentColor" strokeWidth="1.5">
-            <circle cx="12" cy="12" r="10" />
-            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-            <path d="M2 12h20" />
-          </svg>
+        <div className="hidden items-center gap-2 sm:flex">
+          <span className="text-xs font-bold tracking-[0.2em] text-black/60">
+            ON BASE
+          </span>
+          <div className="h-6 w-6 rounded-full bg-[#0052ff]" />
         </div>
-        <div className="h-px flex-1 bg-black/20" />
-      </div>
+      </section>
 
       {/* Player Rows */}
-      <div className="mx-auto max-w-2xl px-4 pb-16">
+      <section className="mx-auto max-w-2xl px-4 pb-16">
         <PlayerList players={players} />
-      </div>
+      </section>
     </main>
   )
 }
