@@ -148,7 +148,7 @@ async function main() {
 
   let logoFixed = 0
   let matchupFixed = 0
-  const notInMap: string[] = []
+  const notInMap = []
 
   for (const school of schools) {
     const teamId = TEAM_IDS[school]
