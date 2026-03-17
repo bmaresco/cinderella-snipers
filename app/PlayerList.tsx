@@ -104,7 +104,7 @@ export default function PlayerList({ players }: { players: Player[] }) {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search players or teams"
-            className="flex-1 rounded-full bg-[#f2f2f2] px-4 py-2 text-[13px] font-semibold text-black outline-none"
+            className="flex-1 rounded-[999px] bg-[#e9e9e9] px-4 py-2 text-[13px] font-semibold text-black outline-none"
           />
           <div className="flex flex-col gap-1">
             <span className="text-[10px] font-semibold text-black/60">Sort players by</span>
@@ -155,7 +155,7 @@ export default function PlayerList({ players }: { players: Player[] }) {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search players or teams"
-          className="w-full rounded-full bg-[#f2f2f2] px-4 py-2 text-sm font-semibold text-black outline-none"
+          className="w-full rounded-[999px] bg-[#e9e9e9] px-4 py-2 text-sm font-semibold text-black outline-none"
         />
       </div>
 

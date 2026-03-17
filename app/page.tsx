@@ -20,6 +20,41 @@ type Player = {
   market_cap_text: string | null
 }
 
+async function fetchNextGameForTeam(teamId: string) {
+  const url = `https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/teams/${teamId}/schedule`
+  const res = await fetch(url, { cache: 'no-store' })
+  if (!res.ok) return null
+
+  const json = await res.json()
+  const events: any[] = json.events ?? []
+  const now = new Date()
+
+  for (const event of events) {
+    const dateStr = event.date as string | undefined
+    if (!dateStr) continue
+    const date = new Date(dateStr)
+    if (isNaN(date.getTime()) || date < now) continue
+
+    const comp = (event.competitions && event.competitions[0]) || null
+    if (!comp) continue
+    const competitors: any[] = comp.competitors ?? []
+    const thisTeam = competitors.find((c) => String(c.team?.id) === String(teamId))
+    const opponent = competitors.find((c) => String(c.team?.id) !== String(teamId))
+    const oppName: string | undefined = opponent?.team?.displayName
+    if (!thisTeam || !oppName) continue
+
+    const prefix = thisTeam.homeAway === 'home' ? 'vs.' : 'at'
+    const matchupText = `${prefix} ${oppName}`
+
+    return {
+      text: matchupText,
+      date: date.toISOString(),
+    }
+  }
+
+  return null
+}
+
 async function getPlayers(): Promise<Player[]> {
   const { data, error } = await supabase
     .from('players')
@@ -31,7 +66,41 @@ async function getPlayers(): Promise<Player[]> {
     return []
   }
 
-  return data ?? []
+  const players: Player[] = (data ?? []) as Player[]
+
+  // Derive ESPN team IDs from team_logo_url, e.g. .../500/2608.png
+  const teamIds = Array.from(
+    new Set(
+      players
+        .map((p) => p.team_logo_url)
+        .filter((u): u is string => !!u)
+        .map((u) => {
+          const match = u.match(/\/(\d+)\.png$/)
+          return match?.[1]
+        })
+        .filter((id): id is string => !!id)
+    )
+  )
+
+  const teamGamesEntries = await Promise.all(
+    teamIds.map(async (id) => [id, await fetchNextGameForTeam(id)] as const)
+  )
+  const teamGames = new Map<string, { text: string; date: string } | null>(teamGamesEntries)
+
+  return players.map((p) => {
+    const logo = p.team_logo_url
+    if (!logo) return p
+    const match = logo.match(/\/(\d+)\.png$/)
+    const teamId = match?.[1]
+    if (!teamId) return p
+    const game = teamGames.get(teamId)
+    if (!game) return p
+    return {
+      ...p,
+      next_matchup: game.text,
+      next_matchup_at: game.date,
+    }
+  })
 }
 
 export default async function HomePage() {
@@ -52,16 +121,16 @@ export default async function HomePage() {
       </section>
 
       {/* Logo + tagline */}
-      <section className="mx-auto flex max-w-4xl items-start justify-between px-6 pt-10 pb-8">
+      <section className="mx-auto flex max-w-4xl flex-col items-center px-6 pt-10 pb-8 text-center">
         <div className="space-y-6">
-          <div className="text-center sm:text-left">
+          <div>
             <img
               src="/wordmark.png"
               alt="Cinderella Snipers"
-              className="mx-auto w-full max-w-[460px] sm:mx-0"
+              className="mx-auto w-full max-w-[460px]"
             />
           </div>
-          <p className="font-chivo-mono max-w-xl text-[11px] sm:text-xs font-semibold leading-6 tracking-[0.16em] text-black/70">
+          <p className="font-chivo-mono mx-auto max-w-xl text-[11px] sm:text-xs font-semibold leading-6 tracking-[0.16em] text-black/70">
             EVERY YEAR, SOME RANDOM GUY DEFIES ALL ODDS AND BECOMES
             THE HERO OF THE TOURNAMENT. WHO WILL IT BE THIS YEAR? IF
             YOU FIND OUT – YOU GET RICH.
