@@ -67,12 +67,6 @@ export default async function HomePage() {
             YOU FIND OUT – YOU GET RICH.
           </p>
         </div>
-        <div className="hidden items-center gap-2 sm:flex">
-          <span className="text-xs font-bold tracking-[0.2em] text-black/60">
-            ON BASE
-          </span>
-          <div className="h-6 w-6 rounded-full bg-[#0052ff]" />
-        </div>
       </section>
 
       {/* Player Rows */}

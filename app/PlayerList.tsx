@@ -149,7 +149,7 @@ export default function PlayerList({ players }: { players: Player[] }) {
       </div>
 
       {/* Desktop search */}
-      <div className="hidden px-4 pb-1 sm:block">
+      <div className="hidden px-6 pb-1 sm:block">
         <input
           type="text"
           value={search}
@@ -160,7 +160,9 @@ export default function PlayerList({ players }: { players: Player[] }) {
       </div>
 
       {/* Column Headers (desktop only) */}
-      <div className="mb-2 ml-[72px] hidden items-center px-4 sm:flex">
+      <div className="mb-2 hidden items-center px-6 sm:flex">
+        {/* Spacer to align with avatar */}
+        <div className="w-[72px] flex-shrink-0" />
         <button
           type="button"
           onClick={() => handleHeaderClick('name')}
@@ -218,7 +220,7 @@ export default function PlayerList({ players }: { players: Player[] }) {
                   />
                 </div>
                 {player.team_logo_url && (
-                  <div className="absolute -top-1 -right-1 h-5 w-5 overflow-hidden rounded-full border border-white bg-white">
+                  <div className="absolute -top-1 -right-1 h-5 w-5 overflow-hidden rounded-full border border-black bg-white">
                     <img
                       src={player.team_logo_url}
                       alt={`${player.team_name} logo`}
@@ -271,7 +273,7 @@ export default function PlayerList({ players }: { players: Player[] }) {
                 />
               </div>
               {player.team_logo_url && (
-                <div className="absolute -top-1 -right-1 h-5 w-5 overflow-hidden rounded-full border border-white bg-white">
+                <div className="absolute -top-1 -right-1 h-5 w-5 overflow-hidden rounded-full border border-black bg-white">
                   <img
                     src={player.team_logo_url}
                     alt={`${player.team_name} logo`}
