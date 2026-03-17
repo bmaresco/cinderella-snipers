@@ -21,38 +21,61 @@ type Player = {
 }
 
 async function fetchNextGameForTeam(teamId: string) {
-  const url = `https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/teams/${teamId}/schedule`
-  const res = await fetch(url, { cache: 'no-store' })
-  if (!res.ok) return null
+  const BASE =
+    'https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/teams'
 
-  const json = await res.json()
-  const events: any[] = json.events ?? []
-  const now = new Date()
+  const extractNextGame = (events: any[] | undefined, id: string) => {
+    const now = new Date()
+    const next = (events ?? [])
+      .filter(
+        (e) =>
+          !e.competitions?.[0]?.status?.type?.completed &&
+          new Date(e.date) >= now
+      )
+      .sort(
+        (a, b) =>
+          new Date(a.date).getTime() - new Date(b.date).getTime()
+      )[0]
 
-  for (const event of events) {
-    const dateStr = event.date as string | undefined
-    if (!dateStr) continue
-    const date = new Date(dateStr)
-    if (isNaN(date.getTime()) || date < now) continue
+    if (!next) return null
 
-    const comp = (event.competitions && event.competitions[0]) || null
-    if (!comp) continue
-    const competitors: any[] = comp.competitors ?? []
-    const thisTeam = competitors.find((c) => String(c.team?.id) === String(teamId))
-    const opponent = competitors.find((c) => String(c.team?.id) !== String(teamId))
-    const oppName: string | undefined = opponent?.team?.displayName
-    if (!thisTeam || !oppName) continue
+    const comp = next.competitions?.[0]
+    const opp = comp?.competitors?.find((c: any) => c.id !== String(id))
+    const oppName: string | undefined = opp?.team?.displayName
+    if (!oppName) return null
 
-    const prefix = thisTeam.homeAway === 'home' ? 'vs.' : 'at'
-    const matchupText = `${prefix} ${oppName}`
-
+    const date = new Date(next.date)
     return {
-      text: matchupText,
+      text: `vs. ${oppName}`,
       date: date.toISOString(),
     }
   }
 
-  return null
+  try {
+    // 1) Try postseason schedule first
+    const postRes = await fetch(`${BASE}/${teamId}/schedule?seasontype=3`, {
+      cache: 'no-store',
+    })
+    if (postRes.ok) {
+      const postJson = await postRes.json()
+      const game = extractNextGame(postJson.events, teamId)
+      if (game) return game
+    }
+
+    // 2) Fall back to regular season for non-tournament teams
+    const regRes = await fetch(`${BASE}/${teamId}/schedule?seasontype=2`, {
+      cache: 'no-store',
+    })
+    if (regRes.ok) {
+      const regJson = await regRes.json()
+      const game = extractNextGame(regJson.events, teamId)
+      if (game) return game
+    }
+
+    return null
+  } catch {
+    return null
+  }
 }
 
 async function getPlayers(): Promise<Player[]> {
