@@ -11,6 +11,7 @@ export type Player = {
   position: string | null
   espn_player_id: string | null
   profile_image_url: string | null
+  team_logo_url: string | null
   next_matchup: string | null
   next_matchup_at: string | null
   market_cap_text: string | null
@@ -58,6 +59,7 @@ function sortPlayers(players: Player[], sortBy: SortOption, ascending: boolean):
 export default function PlayerList({ players }: { players: Player[] }) {
   const [sortBy, setSortBy] = useState<SortOption>('name')
   const [ascending, setAscending] = useState(true)
+  const [search, setSearch] = useState('')
 
   const sortOptions: { value: SortOption; label: string }[] = [
     { value: 'name', label: 'Name' },
@@ -66,9 +68,19 @@ export default function PlayerList({ players }: { players: Player[] }) {
     { value: 'market_cap', label: 'Market cap' },
   ]
 
+  const filteredPlayers = useMemo(() => {
+    const term = search.trim().toLowerCase()
+    if (!term) return players
+    return players.filter((p) => {
+      const name = p.full_name.toLowerCase()
+      const team = p.team_name.toLowerCase()
+      return name.includes(term) || team.includes(term)
+    })
+  }, [players, search])
+
   const sortedPlayers = useMemo(
-    () => sortPlayers(players, sortBy, ascending),
-    [players, sortBy, ascending]
+    () => sortPlayers(filteredPlayers, sortBy, ascending),
+    [filteredPlayers, sortBy, ascending]
   )
 
   const handleHeaderClick = (key: SortOption) => {
@@ -84,45 +96,67 @@ export default function PlayerList({ players }: { players: Player[] }) {
 
   return (
     <div className="space-y-3">
-      {/* Mobile sort controls */}
-      <div className="flex flex-col gap-1 px-4 sm:hidden">
-        <span className="text-xs font-semibold text-black/60">Sort players by</span>
+      {/* Mobile search + sort */}
+      <div className="flex flex-col gap-2 px-4 sm:hidden">
         <div className="flex items-center gap-2">
-          <select
-            value={sortBy}
-            onChange={(e) => handleHeaderClick(e.target.value as SortOption)}
-            className="flex-1 rounded-lg border border-black/20 bg-white px-3 py-2 text-[13px] font-semibold text-black"
-          >
-            {sortOptions.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-          <button
-            type="button"
-            onClick={() => setAscending((a) => !a)}
-            className="flex h-9 w-9 flex-col items-center justify-center rounded-full border border-black/20 bg-white text-black/60"
-            aria-label={ascending ? 'Sort descending' : 'Sort ascending'}
-          >
-            <svg
-              className={`h-3 w-3 ${ascending ? 'text-[#3a6fa8]' : 'text-black/30'}`}
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-            </svg>
-            <svg
-              className={`h-3 w-3 ${!ascending ? 'text-[#3a6fa8]' : 'text-black/30'}`}
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
-          </button>
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search players or teams"
+            className="flex-1 rounded-full bg-[#f2f2f2] px-4 py-2 text-[13px] font-semibold text-black outline-none"
+          />
+          <div className="flex flex-col gap-1">
+            <span className="text-[10px] font-semibold text-black/60">Sort players by</span>
+            <div className="flex items-center gap-1">
+              <select
+                value={sortBy}
+                onChange={(e) => handleHeaderClick(e.target.value as SortOption)}
+                className="rounded-lg border border-black/20 bg-white px-2 py-1 text-[11px] font-semibold text-black"
+              >
+                {sortOptions.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                onClick={() => setAscending((a) => !a)}
+                className="flex h-7 w-7 flex-col items-center justify-center rounded-full border border-black/20 bg-white text-black/60"
+                aria-label={ascending ? 'Sort descending' : 'Sort ascending'}
+              >
+                <svg
+                  className={`h-2.5 w-2.5 ${ascending ? 'text-[#3a6fa8]' : 'text-black/30'}`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                </svg>
+                <svg
+                  className={`h-2.5 w-2.5 ${!ascending ? 'text-[#3a6fa8]' : 'text-black/30'}`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+            </div>
+          </div>
         </div>
+      </div>
+
+      {/* Desktop search */}
+      <div className="hidden px-4 pb-1 sm:block">
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search players or teams"
+          className="w-full rounded-full bg-[#f2f2f2] px-4 py-2 text-sm font-semibold text-black outline-none"
+        />
       </div>
 
       {/* Column Headers (desktop only) */}
@@ -166,7 +200,7 @@ export default function PlayerList({ players }: { players: Player[] }) {
           {/* Mobile layout */}
           <div className="flex flex-col gap-1 sm:hidden">
             <div className="flex items-center gap-3">
-              <div className="h-[52px] w-[52px] flex-shrink-0 overflow-hidden rounded-full bg-[#1a1a1a]">
+          <div className="relative h-[52px] w-[52px] flex-shrink-0 overflow-hidden rounded-full bg-[#1a1a1a]">
                 <img
                   src={player.profile_image_url || "/silhouette.png"}
                   alt={player.full_name}
@@ -181,6 +215,15 @@ export default function PlayerList({ players }: { players: Player[] }) {
                     e.currentTarget.src = "/silhouette.png"
                   }}
                 />
+            {player.team_logo_url && (
+              <div className="absolute -top-1 -right-1 h-5 w-5 overflow-hidden rounded-full border border-white bg-white">
+                <img
+                  src={player.team_logo_url}
+                  alt={`${player.team_name} logo`}
+                  className="h-full w-full object-cover"
+                />
+              </div>
+            )}
               </div>
               <div className="flex-1">
                 <div className="text-[13px] font-black leading-tight text-black">
@@ -208,7 +251,7 @@ export default function PlayerList({ players }: { players: Player[] }) {
 
           {/* Desktop layout (unchanged) */}
           <div className="hidden items-center gap-3 sm:flex">
-            <div className="h-[52px] w-[52px] flex-shrink-0 overflow-hidden rounded-full bg-[#1a1a1a]">
+            <div className="relative h-[52px] w-[52px] flex-shrink-0 overflow-hidden rounded-full bg-[#1a1a1a]">
               <img
                 src={player.profile_image_url || "/silhouette.png"}
                 alt={player.full_name}
@@ -223,6 +266,15 @@ export default function PlayerList({ players }: { players: Player[] }) {
                   e.currentTarget.src = "/silhouette.png"
                 }}
               />
+              {player.team_logo_url && (
+                <div className="absolute -top-1 -right-1 h-5 w-5 overflow-hidden rounded-full border border-white bg-white">
+                  <img
+                    src={player.team_logo_url}
+                    alt={`${player.team_name} logo`}
+                    className="h-full w-full object-cover"
+                  />
+                </div>
+              )}
             </div>
 
             <div className="w-[120px] flex-shrink-0">

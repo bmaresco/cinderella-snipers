@@ -14,6 +14,7 @@ type Player = {
   position: string | null
   espn_player_id: string | null
   profile_image_url: string | null
+  team_logo_url: string | null
   next_matchup: string | null
   next_matchup_at: string | null
   market_cap_text: string | null
