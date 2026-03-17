@@ -95,7 +95,7 @@ export default function PlayerList({ players }: { players: Player[] }) {
   const arrow = ascending ? '↓' : '↑'
 
   return (
-    <div className="space-y-3">
+    <div className="font-archivo-narrow space-y-3">
       {/* Mobile search + sort */}
       <div className="flex flex-col gap-2 px-4 sm:hidden">
         <div className="flex items-center gap-2">
@@ -200,7 +200,61 @@ export default function PlayerList({ players }: { players: Player[] }) {
           {/* Mobile layout */}
           <div className="flex flex-col gap-1 sm:hidden">
             <div className="flex items-center gap-3">
-          <div className="relative h-[52px] w-[52px] flex-shrink-0 overflow-hidden rounded-full bg-[#1a1a1a]">
+              <div className="relative h-[52px] w-[52px] flex-shrink-0">
+                <div className="h-full w-full overflow-hidden rounded-full bg-[#1a1a1a]">
+                  <img
+                    src={player.profile_image_url || "/silhouette.png"}
+                    alt={player.full_name}
+                    className="h-full w-full object-cover"
+                    onLoad={(e) => {
+                      const img = e.currentTarget
+                      if (img.naturalWidth === 60 && img.naturalHeight === 45) {
+                        img.src = "/silhouette.png"
+                      }
+                    }}
+                    onError={(e) => {
+                      e.currentTarget.src = "/silhouette.png"
+                    }}
+                  />
+                </div>
+                {player.team_logo_url && (
+                  <div className="absolute -top-1 -right-1 h-5 w-5 overflow-hidden rounded-full border border-white bg-white">
+                    <img
+                      src={player.team_logo_url}
+                      alt={`${player.team_name} logo`}
+                      className="h-full w-full object-cover"
+                    />
+                  </div>
+                )}
+              </div>
+              <div className="flex-1">
+                <div className="text-[13px] font-bold leading-tight text-black">
+                  {player.full_name}
+                </div>
+              </div>
+            </div>
+
+            <div className="text-[13px] font-semibold text-[#7a7a7a]">
+              {player.team_name}
+            </div>
+
+            <div className="text-[13px] font-semibold text-[#7a7a7a]">
+              {formatNextMatchup(player.next_matchup, player.next_matchup_at)}
+            </div>
+
+            <div className="text-[13px] font-semibold text-[#7a7a7a]">
+              {player.market_cap_text ?? '—'}
+            </div>
+
+            <button className="mt-2 w-full rounded-full bg-black px-5 py-2 text-[13px] font-black text-white transition hover:scale-105 hover:bg-black/90 active:scale-95">
+              BUY
+            </button>
+          </div>
+
+          {/* Desktop layout (unchanged) */}
+          <div className="hidden items-center gap-4 sm:flex">
+            <div className="relative h-[52px] w-[52px] flex-shrink-0">
+              <div className="h-full w-full overflow-hidden rounded-full bg-[#1a1a1a]">
                 <img
                   src={player.profile_image_url || "/silhouette.png"}
                   alt={player.full_name}
@@ -215,57 +269,7 @@ export default function PlayerList({ players }: { players: Player[] }) {
                     e.currentTarget.src = "/silhouette.png"
                   }}
                 />
-            {player.team_logo_url && (
-              <div className="absolute -top-1 -right-1 h-5 w-5 overflow-hidden rounded-full border border-white bg-white">
-                <img
-                  src={player.team_logo_url}
-                  alt={`${player.team_name} logo`}
-                  className="h-full w-full object-cover"
-                />
               </div>
-            )}
-              </div>
-              <div className="flex-1">
-                <div className="text-[13px] font-black leading-tight text-black">
-                  {player.full_name}
-                </div>
-              </div>
-            </div>
-
-            <div className="text-[13px] font-black text-black">
-              {player.team_name}
-            </div>
-
-            <div className="text-[13px] font-black text-black">
-              {formatNextMatchup(player.next_matchup, player.next_matchup_at)}
-            </div>
-
-            <div className="text-[13px] font-black text-black">
-              {player.market_cap_text ?? '—'}
-            </div>
-
-            <button className="mt-2 w-full rounded-full bg-black px-5 py-2 text-[13px] font-black text-white transition hover:scale-105 hover:bg-black/90 active:scale-95">
-              BUY
-            </button>
-          </div>
-
-          {/* Desktop layout (unchanged) */}
-          <div className="hidden items-center gap-4 sm:flex">
-            <div className="relative h-[52px] w-[52px] flex-shrink-0 overflow-hidden rounded-full bg-[#1a1a1a]">
-              <img
-                src={player.profile_image_url || "/silhouette.png"}
-                alt={player.full_name}
-                className="h-full w-full object-cover"
-                onLoad={(e) => {
-                  const img = e.currentTarget
-                  if (img.naturalWidth === 60 && img.naturalHeight === 45) {
-                    img.src = "/silhouette.png"
-                  }
-                }}
-                onError={(e) => {
-                  e.currentTarget.src = "/silhouette.png"
-                }}
-              />
               {player.team_logo_url && (
                 <div className="absolute -top-1 -right-1 h-5 w-5 overflow-hidden rounded-full border border-white bg-white">
                   <img
@@ -278,20 +282,20 @@ export default function PlayerList({ players }: { players: Player[] }) {
             </div>
 
             <div className="w-[120px] flex-shrink-0">
-              <div className="text-[13px] font-black leading-tight text-black">
+              <div className="text-[13px] font-bold leading-tight text-black">
                 {player.full_name}
               </div>
             </div>
 
-            <div className="flex-1 text-[13px] font-black text-black">
+            <div className="flex-1 text-[13px] font-semibold text-[#7a7a7a]">
               {player.team_name}
             </div>
 
-            <div className="flex-1 text-[13px] font-black text-black">
+            <div className="flex-1 text-[13px] font-semibold text-[#7a7a7a]">
               {formatNextMatchup(player.next_matchup, player.next_matchup_at)}
             </div>
 
-            <div className="flex-1 text-[13px] font-black text-black">
+            <div className="flex-1 text-[13px] font-semibold text-[#7a7a7a]">
               {player.market_cap_text ?? '—'}
             </div>
 

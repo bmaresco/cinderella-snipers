@@ -39,10 +39,13 @@ export default async function HomePage() {
 
   return (
     <main className="min-h-screen bg-[#f3f3f3] font-sans">
+      {/* Top black bar */}
+      <div className="h-[10px] w-full bg-black" />
+
       {/* Hero Banner */}
       <section className="w-full">
         <img
-          src="/bannerlogo.png"
+          src="/banner.png"
           alt="Cinderella Snipers"
           className="w-full min-w-full object-cover"
         />
@@ -52,12 +55,13 @@ export default async function HomePage() {
       <section className="mx-auto flex max-w-4xl items-start justify-between px-6 pt-10 pb-8">
         <div className="space-y-6">
           <div className="text-center sm:text-left">
-            <div className="text-[28px] sm:text-[32px] font-black tracking-[0.35em] uppercase leading-tight">
-              <div>CINDERELLA</div>
-              <div>SNIPERS</div>
-            </div>
+            <img
+              src="/wordmark.png"
+              alt="Cinderella Snipers"
+              className="mx-auto w-full max-w-[460px] sm:mx-0"
+            />
           </div>
-          <p className="max-w-xl text-[11px] sm:text-xs font-semibold leading-6 tracking-[0.16em] text-black/70">
+          <p className="font-chivo-mono max-w-xl text-[11px] sm:text-xs font-semibold leading-6 tracking-[0.16em] text-black/70">
             EVERY YEAR, SOME RANDOM GUY DEFIES ALL ODDS AND BECOMES
             THE HERO OF THE TOURNAMENT. WHO WILL IT BE THIS YEAR? IF
             YOU FIND OUT – YOU GET RICH.
