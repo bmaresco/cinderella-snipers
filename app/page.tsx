@@ -132,11 +132,11 @@ export default async function HomePage() {
   return (
     <main className="min-h-screen bg-[#f3f3f3] font-sans">
       {/* Hero Banner */}
-      <section className="relative w-full overflow-hidden h-[260px] sm:h-[320px]">
+      <section className="relative w-full overflow-hidden">
         <img
           src="/banner.png"
           alt="Cinderella Snipers"
-          className="h-full w-full object-cover"
+          className="h-auto w-full object-cover"
         />
         {/* Left logo */}
         <img
