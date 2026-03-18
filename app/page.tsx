@@ -163,20 +163,17 @@ export default async function HomePage() {
             />
           </div>
           <p className="font-chivo-mono mx-auto max-w-xl text-[11px] sm:text-xs font-semibold leading-6 tracking-[0.16em] text-black/70">
-            Every year, someone defies the odds and becomes the hero of the tournament. This year: you pick the right
-            player, you get rich.
+            EVERY YEAR, SOMEONE DEFIES THE ODDS AND BECOMES THE HERO OF THE TOURNAMENT. THIS YEAR: YOU PICK THE RIGHT PLAYER, YOU GET RICH
             <br />
+            PLAYER EVERY ROUND
             <br />
-            Every coin has a 10% sell tax: which buys the{' '}
-            <span className="relative group underline underline-offset-2">
-              highest performing
+            EVERY COIN HAS A 10% SELL TAX: WHICH BUYS THE{' '}
+            <span className="relative group underline underline-offset-2 cursor-help hover:cursor-crosshair">
+              HIGHEST PERFORMING
               <span className="pointer-events-none absolute left-1/2 top-full z-10 mt-2 hidden w-56 -translate-x-1/2 rounded-md bg-black px-3 py-2 text-[10px] font-normal leading-relaxed text-white group-hover:block">
-                tokenomics description will be here
+                TOKENOMICS DESCRIPTION WILL BE HERE
               </span>
-            </span>{' '}
-            player
-            <br />
-            every round
+            </span>
           </p>
         </div>
       </section>
