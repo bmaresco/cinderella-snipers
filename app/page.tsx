@@ -20,8 +20,7 @@ type Player = {
   next_matchup_at: string | null
   market_cap_text: string | null
   clanker_contract_address: string | null
-  clanker_pool_address: string | null
-  starting_market_cap: number | null
+  clanker_market_cap_usd: number | null
 }
 
 const PLAYER_TOKEN_DEPLOYER_WALLET = '0xe2a26dD1AB4942C5a500093161f33368e27953a1'
@@ -99,8 +98,7 @@ async function getPlayers(): Promise<Player[]> {
     return []
   }
 
-  const players: Omit<Player, 'clanker_contract_address' | 'clanker_pool_address' | 'starting_market_cap'>[] =
-    (data ?? []) as any
+  const players: Omit<Player, 'clanker_contract_address' | 'clanker_market_cap_usd'>[] = (data ?? []) as any
 
   // Derive ESPN team IDs from team_logo_url, e.g. .../500/2608.png
   const teamIds = Array.from(
@@ -163,8 +161,7 @@ async function getPlayers(): Promise<Player[]> {
       next_matchup: game?.text ?? p.next_matchup,
       next_matchup_at: game?.date ?? p.next_matchup_at,
       clanker_contract_address: token?.contract_address ?? null,
-      clanker_pool_address: token?.pool_address ?? null,
-      starting_market_cap: token?.starting_market_cap ?? null,
+      clanker_market_cap_usd: token?.related?.market?.marketCap ?? null,
     }
   })
 }

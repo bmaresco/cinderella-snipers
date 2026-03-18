@@ -16,8 +16,7 @@ export type Player = {
   next_matchup_at: string | null
   market_cap_text: string | null
   clanker_contract_address: string | null
-  clanker_pool_address: string | null
-  starting_market_cap: number | null
+  clanker_market_cap_usd: number | null
 }
 
 type SortOption = 'name' | 'team' | 'market_cap' | 'next_game'
@@ -101,7 +100,7 @@ export default function PlayerList({ players }: { players: Player[] }) {
   const [sortBy, setSortBy] = useState<SortOption>('name')
   const [ascending, setAscending] = useState(true)
   const [search, setSearch] = useState('')
-  const [liveMarketCapsByPool, setLiveMarketCapsByPool] = useState<Record<string, number | null>>({})
+  const [liveMarketCapsByContract, setLiveMarketCapsByContract] = useState<Record<string, number | null>>({})
 
   const sortOptions: { value: SortOption; label: string }[] = [
     { value: 'name', label: 'Name' },
@@ -121,18 +120,19 @@ export default function PlayerList({ players }: { players: Player[] }) {
   }, [players, search])
 
   const getMarketCapValue = (p: Player) => {
-    if (p.clanker_pool_address) {
-      const live = liveMarketCapsByPool[p.clanker_pool_address.toLowerCase()]
+    if (p.clanker_contract_address) {
+      const live = liveMarketCapsByContract[p.clanker_contract_address.toLowerCase()]
       if (live != null) return live
     }
-    return parseMarketCapNumber(p.market_cap_text) ?? p.starting_market_cap ?? null
+    return p.clanker_market_cap_usd ?? parseMarketCapNumber(p.market_cap_text)
   }
 
   const getMarketCapDisplay = (p: Player) => {
-    if (p.clanker_pool_address) {
-      const live = liveMarketCapsByPool[p.clanker_pool_address.toLowerCase()]
+    if (p.clanker_contract_address) {
+      const live = liveMarketCapsByContract[p.clanker_contract_address.toLowerCase()]
       if (live != null) return formatUsdCompact(live)
     }
+    if (p.clanker_market_cap_usd != null) return formatUsdCompact(p.clanker_market_cap_usd)
     return p.market_cap_text ?? '—'
   }
 
@@ -140,28 +140,28 @@ export default function PlayerList({ players }: { players: Player[] }) {
     filteredPlayers,
     sortBy,
     ascending,
-    liveMarketCapsByPool,
+    liveMarketCapsByContract,
   ])
 
-  const poolAddresses = useMemo(() => {
+  const contractAddresses = useMemo(() => {
     return Array.from(
-      new Set(players.map((p) => (p.clanker_pool_address ? p.clanker_pool_address.toLowerCase() : null)).filter(Boolean))
+      new Set(
+        players.map((p) => (p.clanker_contract_address ? p.clanker_contract_address.toLowerCase() : null)).filter(Boolean)
+      )
     ) as string[]
   }, [players])
 
   useEffect(() => {
-    if (!poolAddresses.length) return
+    if (!contractAddresses.length) return
 
     let cancelled = false
     const fetchLiveMarketCaps = async () => {
       try {
-        const res = await fetch(`/api/market-caps?pools=${encodeURIComponent(poolAddresses.join(','))}`, {
-          cache: 'no-store',
-        })
+        const res = await fetch(`/api/clanker-market-caps`, { cache: 'no-store' })
         if (!res.ok) return
-        const json = (await res.json()) as { pools: Record<string, number | null> }
+        const json = (await res.json()) as { caps: Record<string, number | null> }
         if (cancelled) return
-        setLiveMarketCapsByPool(json.pools ?? {})
+        setLiveMarketCapsByContract(json.caps ?? {})
       } catch {
         // Polling errors shouldn't break the UI.
       }
@@ -174,7 +174,7 @@ export default function PlayerList({ players }: { players: Player[] }) {
       cancelled = true
       clearInterval(interval)
     }
-  }, [poolAddresses])
+  }, [contractAddresses])
 
   const handleHeaderClick = (key: SortOption) => {
     if (sortBy === key) {
