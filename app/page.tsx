@@ -23,7 +23,11 @@ type Player = {
   clanker_market_cap_usd: number | null
 }
 
-const PLAYER_TOKEN_DEPLOYER_WALLET = '0xe2a26dD1AB4942C5a500093161f33368e27953a1'
+const PLAYER_TOKEN_DEPLOYER_WALLETS = [
+  '0xe2a26dD1AB4942C5a500093161f33368e27953a1',
+  // Additional public wallet with minted coins that should also map to players.
+  '0xd6499f26AA1e91D527348AB18ae93c264Fa9D5f5',
+]
 
 function normalizeForTokenMatch(input: string) {
   return input.toLowerCase().replace(/[^a-z0-9]/g, '')
@@ -175,7 +179,19 @@ async function getPlayers(): Promise<Player[]> {
   )
   const teamGames = new Map<string, { text: string; date: string | null } | null>(teamGamesEntries)
 
-  const deployedTokens = await getTokensByCreatorAddress(PLAYER_TOKEN_DEPLOYER_WALLET)
+  const deployedTokenLists = await Promise.all(
+    PLAYER_TOKEN_DEPLOYER_WALLETS.map((w) => getTokensByCreatorAddress(w, { cacheTtlMs: 0 })),
+  )
+  // De-dupe by contract address so ties across wallets don't cause extra comparisons.
+  const deployedTokenByContract = new Map<string, (typeof deployedTokenLists)[number][number]>()
+  for (const list of deployedTokenLists) {
+    for (const token of list) {
+      if (!token?.contract_address) continue
+      const key = token.contract_address.toLowerCase()
+      if (!deployedTokenByContract.has(key)) deployedTokenByContract.set(key, token)
+    }
+  }
+  const deployedTokens = Array.from(deployedTokenByContract.values())
   const deployedForMatch = deployedTokens.map((token) => ({
     token,
     nameNorm: normalizeForTokenMatch(token.name ?? ''),
