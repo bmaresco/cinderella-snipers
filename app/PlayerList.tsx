@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 export type Player = {
   id: number
@@ -15,6 +15,9 @@ export type Player = {
   next_matchup: string | null
   next_matchup_at: string | null
   market_cap_text: string | null
+  clanker_contract_address: string | null
+  clanker_pool_address: string | null
+  starting_market_cap: number | null
 }
 
 type SortOption = 'name' | 'team' | 'market_cap' | 'next_game'
@@ -33,7 +36,41 @@ function formatNextMatchup(matchup: string | null, date: string | null) {
   return `${matchup} ${formatted}`
 }
 
-function sortPlayers(players: Player[], sortBy: SortOption, ascending: boolean): Player[] {
+function parseMarketCapNumber(text: string | null | undefined): number | null {
+  if (!text) return null
+  const raw = text.trim()
+  if (!raw || raw === '—') return null
+
+  // Normalize common compact formats like "$1.2M" or "12,345,678"
+  const cleaned = raw.replace(/[$,\s]/g, '')
+  const m = cleaned.match(/^(-?\d+(\.\d+)?)([KMB])?$/i)
+  if (!m) return null
+
+  const base = Number(m[1])
+  if (!Number.isFinite(base)) return null
+
+  const suffix = (m[3] ?? '').toUpperCase()
+  const mult = suffix === 'K' ? 1e3 : suffix === 'M' ? 1e6 : suffix === 'B' ? 1e9 : 1
+  return base * mult
+}
+
+function formatUsdCompact(marketCapUsd: number): string {
+  if (!Number.isFinite(marketCapUsd)) return '—'
+  const abs = Math.abs(marketCapUsd)
+  const sign = marketCapUsd < 0 ? '-' : ''
+
+  if (abs >= 1e9) return `${sign}$${(abs / 1e9).toFixed(2)}B`
+  if (abs >= 1e6) return `${sign}$${(abs / 1e6).toFixed(2)}M`
+  if (abs >= 1e3) return `${sign}$${(abs / 1e3).toFixed(2)}K`
+  return `${sign}$${abs.toFixed(2)}`
+}
+
+function sortPlayers(
+  players: Player[],
+  sortBy: SortOption,
+  ascending: boolean,
+  getMarketCapValue: (p: Player) => number | null
+): Player[] {
   const sorted = [...players]
   const dir = ascending ? 1 : -1
 
@@ -43,7 +80,11 @@ function sortPlayers(players: Player[], sortBy: SortOption, ascending: boolean):
     case 'team':
       return sorted.sort((a, b) => dir * a.team_name.localeCompare(b.team_name))
     case 'market_cap':
-      return sorted.sort((a, b) => dir * (a.market_cap_text ?? '').localeCompare(b.market_cap_text ?? ''))
+      return sorted.sort((a, b) => {
+        const aCap = getMarketCapValue(a) ?? 0
+        const bCap = getMarketCapValue(b) ?? 0
+        return dir * (aCap - bCap)
+      })
     case 'next_game': {
       return sorted.sort((a, b) => {
         const aDate = a.next_matchup_at ? new Date(a.next_matchup_at).getTime() : Infinity
@@ -60,6 +101,7 @@ export default function PlayerList({ players }: { players: Player[] }) {
   const [sortBy, setSortBy] = useState<SortOption>('name')
   const [ascending, setAscending] = useState(true)
   const [search, setSearch] = useState('')
+  const [liveMarketCapsByPool, setLiveMarketCapsByPool] = useState<Record<string, number | null>>({})
 
   const sortOptions: { value: SortOption; label: string }[] = [
     { value: 'name', label: 'Name' },
@@ -78,10 +120,61 @@ export default function PlayerList({ players }: { players: Player[] }) {
     })
   }, [players, search])
 
-  const sortedPlayers = useMemo(
-    () => sortPlayers(filteredPlayers, sortBy, ascending),
-    [filteredPlayers, sortBy, ascending]
-  )
+  const getMarketCapValue = (p: Player) => {
+    if (p.clanker_pool_address) {
+      const live = liveMarketCapsByPool[p.clanker_pool_address.toLowerCase()]
+      if (live != null) return live
+    }
+    return parseMarketCapNumber(p.market_cap_text) ?? p.starting_market_cap ?? null
+  }
+
+  const getMarketCapDisplay = (p: Player) => {
+    if (p.clanker_pool_address) {
+      const live = liveMarketCapsByPool[p.clanker_pool_address.toLowerCase()]
+      if (live != null) return formatUsdCompact(live)
+    }
+    return p.market_cap_text ?? '—'
+  }
+
+  const sortedPlayers = useMemo(() => sortPlayers(filteredPlayers, sortBy, ascending, getMarketCapValue), [
+    filteredPlayers,
+    sortBy,
+    ascending,
+    liveMarketCapsByPool,
+  ])
+
+  const poolAddresses = useMemo(() => {
+    return Array.from(
+      new Set(players.map((p) => (p.clanker_pool_address ? p.clanker_pool_address.toLowerCase() : null)).filter(Boolean))
+    ) as string[]
+  }, [players])
+
+  useEffect(() => {
+    if (!poolAddresses.length) return
+
+    let cancelled = false
+    const fetchLiveMarketCaps = async () => {
+      try {
+        const res = await fetch(`/api/market-caps?pools=${encodeURIComponent(poolAddresses.join(','))}`, {
+          cache: 'no-store',
+        })
+        if (!res.ok) return
+        const json = (await res.json()) as { pools: Record<string, number | null> }
+        if (cancelled) return
+        setLiveMarketCapsByPool(json.pools ?? {})
+      } catch {
+        // Polling errors shouldn't break the UI.
+      }
+    }
+
+    fetchLiveMarketCaps()
+    const interval = setInterval(fetchLiveMarketCaps, 30_000)
+
+    return () => {
+      cancelled = true
+      clearInterval(interval)
+    }
+  }, [poolAddresses])
 
   const handleHeaderClick = (key: SortOption) => {
     if (sortBy === key) {
@@ -197,7 +290,7 @@ export default function PlayerList({ players }: { players: Player[] }) {
       {sortedPlayers.map((player) => (
         <div
           key={player.id}
-          className="rounded-2xl sm:rounded-[999px] bg-white px-4 py-3 shadow-sm sm:px-5"
+          className="rounded-[999px] bg-white px-4 py-3 shadow-sm sm:px-5"
         >
           {/* Mobile layout */}
           <div className="flex flex-col gap-1 sm:hidden">
@@ -245,12 +338,26 @@ export default function PlayerList({ players }: { players: Player[] }) {
             </div>
 
             <div className="text-[13px] font-semibold text-[#7a7a7a]">
-              {player.market_cap_text ?? '—'}
+              {getMarketCapDisplay(player)}
             </div>
 
-            <button className="mt-2 w-[70%] self-center rounded-full bg-black px-5 py-2 text-[13px] font-black text-white transition hover:bg-black/90 active:scale-95">
-              BUY
-            </button>
+            {player.clanker_contract_address ? (
+              <a
+                href={`https://clanker.world/clanker/${player.clanker_contract_address}`}
+                className="mt-2 block w-full rounded-full bg-black px-5 py-2 text-[13px] font-black text-white transition hover:scale-105 hover:bg-black/90 active:scale-95 text-center"
+                aria-label={`Buy ${player.full_name}`}
+              >
+                BUY
+              </a>
+            ) : (
+              <button
+                type="button"
+                disabled
+                className="mt-2 w-full rounded-full bg-black px-5 py-2 text-[13px] font-black text-white opacity-60 transition"
+              >
+                BUY
+              </button>
+            )}
           </div>
 
           {/* Desktop layout (unchanged) */}
@@ -298,12 +405,26 @@ export default function PlayerList({ players }: { players: Player[] }) {
             </div>
 
             <div className="flex-1 text-[13px] font-semibold text-[#7a7a7a]">
-              {player.market_cap_text ?? '—'}
+              {getMarketCapDisplay(player)}
             </div>
 
-            <button className="flex-shrink-0 rounded-full bg-black px-6 py-2.5 text-[13px] font-black text-white transition hover:scale-105 hover:bg-black/90 active:scale-95">
-              BUY
-            </button>
+            {player.clanker_contract_address ? (
+              <a
+                href={`https://clanker.world/clanker/${player.clanker_contract_address}`}
+                className="flex-shrink-0 block rounded-full bg-black px-6 py-2.5 text-[13px] font-black text-white transition hover:scale-105 hover:bg-black/90 active:scale-95 text-center"
+                aria-label={`Buy ${player.full_name}`}
+              >
+                BUY
+              </a>
+            ) : (
+              <button
+                type="button"
+                disabled
+                className="flex-shrink-0 rounded-full bg-black px-6 py-2.5 text-[13px] font-black text-white opacity-60 transition"
+              >
+                BUY
+              </button>
+            )}
           </div>
         </div>
       ))}

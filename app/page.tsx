@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase'
+import { getTokensDeployedByAddress } from '@/lib/clanker'
 import PlayerList from './PlayerList'
 
 // Always fetch fresh data from Supabase (no build-time caching)
@@ -18,6 +19,15 @@ type Player = {
   next_matchup: string | null
   next_matchup_at: string | null
   market_cap_text: string | null
+  clanker_contract_address: string | null
+  clanker_pool_address: string | null
+  starting_market_cap: number | null
+}
+
+const PLAYER_TOKEN_DEPLOYER_WALLET = '0xe2a26dD1AB4942C5a500093161f33368e27953a1'
+
+function normalizeForTokenMatch(input: string) {
+  return input.toLowerCase().replace(/[^a-z0-9]/g, '')
 }
 
 async function fetchNextGameForTeam(teamId: string) {
@@ -89,7 +99,8 @@ async function getPlayers(): Promise<Player[]> {
     return []
   }
 
-  const players: Player[] = (data ?? []) as Player[]
+  const players: Omit<Player, 'clanker_contract_address' | 'clanker_pool_address' | 'starting_market_cap'>[] =
+    (data ?? []) as any
 
   // Derive ESPN team IDs from team_logo_url, e.g. .../500/2608.png
   const teamIds = Array.from(
@@ -110,18 +121,50 @@ async function getPlayers(): Promise<Player[]> {
   )
   const teamGames = new Map<string, { text: string; date: string } | null>(teamGamesEntries)
 
+  const deployedTokens = await getTokensDeployedByAddress(PLAYER_TOKEN_DEPLOYER_WALLET)
+  const deployedForMatch = deployedTokens.map((token) => ({
+    token,
+    nameNorm: normalizeForTokenMatch(token.name ?? ''),
+  }))
+
   return players.map((p) => {
+    const token = (() => {
+      let bestScore = 0
+      let best: (typeof deployedForMatch)[number] | null = null
+
+      const nameParts = p.full_name.trim().split(/\s+/).filter(Boolean)
+      const first = nameParts[0] ?? ''
+      const last = nameParts[nameParts.length - 1] ?? ''
+      const firstLastNorm = normalizeForTokenMatch(`${first}${last}`)
+      const teamNorm = normalizeForTokenMatch(p.team_name)
+
+      for (const dt of deployedForMatch) {
+        const tokenNorm = dt.nameNorm
+        let score = 0
+        if (tokenNorm.includes(firstLastNorm) && tokenNorm.includes(teamNorm)) score = 10
+        else if (tokenNorm.includes(firstLastNorm) || tokenNorm.includes(teamNorm)) score = 5
+
+        if (score > bestScore) {
+          bestScore = score
+          best = dt
+        }
+      }
+
+      return best?.token ?? null
+    })()
+
     const logo = p.team_logo_url
-    if (!logo) return p
-    const match = logo.match(/\/(\d+)\.png$/)
+    const match = logo ? logo.match(/\/(\d+)\.png$/) : null
     const teamId = match?.[1]
-    if (!teamId) return p
-    const game = teamGames.get(teamId)
-    if (!game) return p
+    const game = teamId ? teamGames.get(teamId) : null
+
     return {
       ...p,
-      next_matchup: game.text,
-      next_matchup_at: game.date,
+      next_matchup: game?.text ?? p.next_matchup,
+      next_matchup_at: game?.date ?? p.next_matchup_at,
+      clanker_contract_address: token?.contract_address ?? null,
+      clanker_pool_address: token?.pool_address ?? null,
+      starting_market_cap: token?.starting_market_cap ?? null,
     }
   })
 }
@@ -131,12 +174,12 @@ export default async function HomePage() {
 
   return (
     <main className="min-h-screen bg-[#f3f3f3] font-sans">
-      {/* Hero Banner */}
-      <section className="relative w-full overflow-hidden">
+      {/* Hero Banner (cropped) */}
+      <section className="relative w-full overflow-hidden h-[260px] sm:h-[320px]">
         <img
           src="/banner.png"
           alt="Cinderella Snipers"
-          className="h-auto w-full object-cover"
+          className="h-full w-full object-cover"
         />
         {/* Left logo */}
         <img
@@ -163,10 +206,8 @@ export default async function HomePage() {
             />
           </div>
           <p className="font-chivo-mono mx-auto max-w-xl text-[11px] sm:text-xs font-semibold leading-6 tracking-[0.16em] text-[#838383]">
-            EVERY YEAR, SOMEONE DEFIES THE ODDS AND BECOMES THE HERO OF THE TOURNAMENT.
-            <br />
-            <br />
-            THIS YEAR: YOU PICK THE RIGHT PLAYER, YOU GET RICH.
+            EVERY YEAR, SOMEONE DEFIES THE ODDS AND BECOMES THE HERO OF THE TOURNAMENT. THIS YEAR: YOU PICK THE RIGHT
+            PLAYER, YOU GET RICH.
             <br />
             <br />
             EVERY COIN HAS A 10% SELL TAX: WHICH BUYS THE{' '}
@@ -178,7 +219,6 @@ export default async function HomePage() {
                 <br />
                 PLAYERS ON UNDERDOG TEAMS RECEIVE A MULTIPLIER TO THEIR FANTASY POINTS BASED ON THE SEED DIFFERENCE:
                 <br />
-                <br />
                 10–15: 1.6X MULTIPLIER
                 <br />
                 5–9: 1.4X MULTIPLIER
@@ -186,7 +226,9 @@ export default async function HomePage() {
                 1–4: 1.2X MULTIPLIER
               </span>
             </span>{' '}
-            PLAYER... EVERY ROUND.
+            PLAYER
+            <br />
+            EVERY ROUND
           </p>
         </div>
       </section>
