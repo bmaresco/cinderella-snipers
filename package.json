@@ -4,7 +4,8 @@
     "build": "next build",
     "start": "next start",
     "sync:players": "node sync-players.mjs",
-    "update:schedules": "node update-schedules.mjs"
+    "update:schedules": "node update-schedules.mjs",
+    "verify:minted": "node verify-minted-coins.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.99.2",
