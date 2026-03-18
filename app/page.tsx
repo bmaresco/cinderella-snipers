@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase'
-import { getTokensDeployedByAddress } from '@/lib/clanker'
+import { getTokensByCreatorAddress } from '@/lib/clanker'
 import PlayerList from './PlayerList'
 
 // Always fetch fresh data from Supabase (no build-time caching)
@@ -121,7 +121,7 @@ async function getPlayers(): Promise<Player[]> {
   )
   const teamGames = new Map<string, { text: string; date: string } | null>(teamGamesEntries)
 
-  const deployedTokens = await getTokensDeployedByAddress(PLAYER_TOKEN_DEPLOYER_WALLET)
+  const deployedTokens = await getTokensByCreatorAddress(PLAYER_TOKEN_DEPLOYER_WALLET)
   const deployedForMatch = deployedTokens.map((token) => ({
     token,
     nameNorm: normalizeForTokenMatch(token.name ?? ''),
