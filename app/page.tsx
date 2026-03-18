@@ -50,8 +50,8 @@ async function fetchNextGameForTeam(teamId: string) {
 
     const comp = next.competitions?.[0]
     const opp = comp?.competitors?.find((c: any) => c.id !== String(id))
-    const oppName: string | undefined = opp?.team?.displayName
-    if (!oppName) return null
+    const oppName: string =
+      opp?.team?.displayName ?? opp?.team?.shortDisplayName ?? opp?.team?.abbreviation ?? 'TBD'
 
     const date = new Date(next.date)
     return {

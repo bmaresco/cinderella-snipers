@@ -108,8 +108,8 @@ async function fetchNextGame(teamId) {
 
     const comp = next.competitions?.[0]
     const opp = comp?.competitors?.find((c) => c.id !== String(id))
-    const oppName = opp?.team?.displayName
-    if (!oppName) return null
+    const oppName =
+      opp?.team?.displayName ?? opp?.team?.shortDisplayName ?? opp?.team?.abbreviation ?? 'TBD'
 
     return {
       next_matchup: `vs. ${oppName}`,
