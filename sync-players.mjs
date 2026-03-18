@@ -98,6 +98,12 @@ function normalizeTeamName(input) {
     .replace(/[^a-z0-9]/g, '')
 }
 
+function parseTeamIdFromLogoUrl(teamLogoUrl) {
+  // ESPN team logos use: .../500/<teamId>.png
+  const match = teamLogoUrl?.match(/\/(\d+)\.png$/)
+  return match?.[1] ?? null
+}
+
 async function fetchEspnTeamIdIndex() {
   const url = 'https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/teams'
   const res = await fetch(url, { cache: 'no-store' })
@@ -244,11 +250,9 @@ async function fetchNextGame(teamId) {
 async function main() {
   console.log('🏀 Starting player sync...\n')
 
-  const espnTeamIndex = await fetchEspnTeamIdIndex()
-
   const { data: rows, error } = await supabase
     .from('players')
-    .select('school_name')
+    .select('school_name, team_logo_url')
     .order('school_name')
 
   if (error) {
@@ -257,30 +261,42 @@ async function main() {
   }
 
   const schools = [...new Set(rows.map((r) => r.school_name))]
+  const schoolToLogoUrl = new Map()
+  for (const r of rows ?? []) {
+    if (!r?.school_name) continue
+    if (!schoolToLogoUrl.has(r.school_name) && r.team_logo_url) {
+      schoolToLogoUrl.set(r.school_name, r.team_logo_url)
+    }
+  }
   console.log(`Found ${schools.length} unique schools\n`)
 
-  let logoFixed = 0
-  let matchupFixed = 0
+  let matchupsUpdated = 0
+  let skipped = 0
   const notInMap = []
 
   for (const school of schools) {
-    const direct = espnTeamIndex.byDisplayName.get(school)
-    const normalized = espnTeamIndex.byNormalizedDisplayName.get(normalizeTeamName(school))
-    const teamId = direct ?? normalized ?? TEAM_IDS[school]
+    const logoUrl = schoolToLogoUrl.get(school) ?? null
+    const logoTeamId = parseTeamIdFromLogoUrl(logoUrl)
+    const teamId = logoTeamId ?? TEAM_IDS[school]
 
     if (!teamId) {
       notInMap.push(school)
       console.warn(`⚠️  No ESPN ID for: ${school}`)
+      skipped++
       continue
     }
 
-    const logoUrl = `https://a.espncdn.com/i/teamlogos/ncaa/500/${teamId}.png`
     const gameInfo = await fetchNextGame(teamId)
+    if (!gameInfo) {
+      console.log(`  ⏭️  ${school}: no next/elim found (skipping next-game update)`)
+      skipped++
+      await new Promise((r) => setTimeout(r, 150))
+      continue
+    }
 
     const update = {
-      team_logo_url: logoUrl,
-      next_matchup: gameInfo?.next_matchup ?? 'TBD',
-      next_matchup_at: gameInfo?.next_matchup_at ?? null,
+      next_matchup: gameInfo.next_matchup ?? null,
+      next_matchup_at: gameInfo.next_matchup_at ?? null,
     }
 
     const { error: updateErr } = await supabase
@@ -291,13 +307,10 @@ async function main() {
     if (updateErr) {
       console.error(`  ❌ DB error for ${school}:`, updateErr.message)
     } else {
-      logoFixed++
-      if (gameInfo) matchupFixed++
+      matchupsUpdated++
       console.log(
-        `  ✅ ${school} → logo updated, next: ${update.next_matchup}${
-          update.next_matchup_at
-            ? ` (${new Date(update.next_matchup_at).toLocaleDateString()})`
-            : ''
+        `  ✅ ${school} → next: ${update.next_matchup}${
+          update.next_matchup_at ? ` (${new Date(update.next_matchup_at).toLocaleDateString()})` : ''
         }`
       )
     }
@@ -306,8 +319,8 @@ async function main() {
   }
 
   console.log(`\n📊 Summary:`)
-  console.log(`  Logos updated: ${logoFixed}`)
-  console.log(`  Matchups found: ${matchupFixed}`)
+  console.log(`  Next games updated: ${matchupsUpdated}`)
+  console.log(`  Skipped (no next/elim found): ${skipped}`)
   console.log(
     `  Missing from ID map: ${notInMap.length}${
       notInMap.length ? ' → ' + notInMap.join(', ') : ''
