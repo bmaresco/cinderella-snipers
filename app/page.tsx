@@ -131,7 +131,7 @@ export default async function HomePage() {
 
   return (
     <main className="min-h-screen bg-[#f3f3f3] font-sans">
-      {/* Hero Banner (cropped) */}
+      {/* Hero Banner */}
       <section className="relative w-full overflow-hidden h-[260px] sm:h-[320px]">
         <img
           src="/banner.png"
@@ -163,8 +163,10 @@ export default async function HomePage() {
             />
           </div>
           <p className="font-chivo-mono mx-auto max-w-xl text-[11px] sm:text-xs font-semibold leading-6 tracking-[0.16em] text-[#838383]">
-            EVERY YEAR, SOMEONE DEFIES THE ODDS AND BECOMES THE HERO OF THE TOURNAMENT. THIS YEAR: YOU PICK THE RIGHT
-            PLAYER, YOU GET RICH.
+            EVERY YEAR, SOMEONE DEFIES THE ODDS AND BECOMES THE HERO OF THE TOURNAMENT.
+            <br />
+            <br />
+            THIS YEAR: YOU PICK THE RIGHT PLAYER, YOU GET RICH.
             <br />
             <br />
             EVERY COIN HAS A 10% SELL TAX: WHICH BUYS THE{' '}
@@ -176,6 +178,7 @@ export default async function HomePage() {
                 <br />
                 PLAYERS ON UNDERDOG TEAMS RECEIVE A MULTIPLIER TO THEIR FANTASY POINTS BASED ON THE SEED DIFFERENCE:
                 <br />
+                <br />
                 10–15: 1.6X MULTIPLIER
                 <br />
                 5–9: 1.4X MULTIPLIER
@@ -183,9 +186,7 @@ export default async function HomePage() {
                 1–4: 1.2X MULTIPLIER
               </span>
             </span>{' '}
-            PLAYER
-            <br />
-            EVERY ROUND
+            PLAYER... EVERY ROUND.
           </p>
         </div>
       </section>
