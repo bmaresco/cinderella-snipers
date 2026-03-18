@@ -3,7 +3,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "sync:players": "node sync-players.mjs"
+    "sync:players": "node sync-players.mjs",
+    "update:schedules": "node update-schedules.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.99.2",
