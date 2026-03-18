@@ -33,7 +33,7 @@ async function fetchNextGameForTeam(teamId: string) {
   const BASE =
     'https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/teams'
 
-  const extractNextGame = (events: any[] | undefined, id: string) => {
+  const extractNextGameOrEliminated = (events: any[] | undefined, id: string) => {
     const now = new Date()
     const next = (events ?? [])
       .filter(
@@ -67,7 +67,31 @@ async function fetchNextGameForTeam(teamId: string) {
     })
     if (postRes.ok) {
       const postJson = await postRes.json()
-      const game = extractNextGame(postJson.events, teamId)
+      // If there's no upcoming postseason game, we may be able to infer elimination.
+      const game = (() => {
+        const res = extractNextGameOrEliminated(postJson.events, teamId)
+        if (res) return res
+
+        // No upcoming game found; check if the most recent completed postseason game was a loss.
+        const completed = (postJson.events ?? [])
+          .filter((e: any) => e.competitions?.[0]?.status?.type?.completed)
+          .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime())[0]
+
+        if (!completed) return null
+
+        const comp = completed.competitions?.[0]
+        const competitors = comp?.competitors ?? []
+        const teamComp = competitors.find((c: any) => c.id === String(teamId))
+        const oppComp = competitors.find((c: any) => c.id !== String(teamId))
+
+        const teamScore = teamComp?.score != null ? Number(teamComp.score) : null
+        const oppScore = oppComp?.score != null ? Number(oppComp.score) : null
+
+        if (!Number.isFinite(teamScore) || !Number.isFinite(oppScore)) return null
+        if (teamScore >= oppScore) return null
+
+        return { text: 'ELIMINATED', date: null as string | null }
+      })()
       if (game) return game
     }
 
@@ -77,7 +101,7 @@ async function fetchNextGameForTeam(teamId: string) {
     })
     if (regRes.ok) {
       const regJson = await regRes.json()
-      const game = extractNextGame(regJson.events, teamId)
+      const game = extractNextGameOrEliminated(regJson.events, teamId)
       if (game) return game
     }
 
@@ -117,7 +141,7 @@ async function getPlayers(): Promise<Player[]> {
   const teamGamesEntries = await Promise.all(
     teamIds.map(async (id) => [id, await fetchNextGameForTeam(id)] as const)
   )
-  const teamGames = new Map<string, { text: string; date: string } | null>(teamGamesEntries)
+  const teamGames = new Map<string, { text: string; date: string | null } | null>(teamGamesEntries)
 
   const deployedTokens = await getTokensByCreatorAddress(PLAYER_TOKEN_DEPLOYER_WALLET)
   const deployedForMatch = deployedTokens.map((token) => ({
@@ -159,7 +183,8 @@ async function getPlayers(): Promise<Player[]> {
     return {
       ...p,
       next_matchup: game?.text ?? p.next_matchup,
-      next_matchup_at: game?.date ?? p.next_matchup_at,
+      // If `game` exists but `date` is null (ELIMINATED), we must clear the stored date.
+      next_matchup_at: game ? game.date : p.next_matchup_at,
       clanker_contract_address: token?.contract_address ?? null,
       clanker_market_cap_usd: token?.related?.market?.marketCap ?? null,
     }

@@ -92,41 +92,75 @@ const TEAM_IDS = {
 }
 
 async function fetchNextGame(teamId) {
-  const url = `https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/teams/${teamId}/schedule`
+  const BASE =
+    'https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/teams'
 
-  let res
-  try {
-    res = await fetch(url)
-    if (!res.ok) return null
-  } catch {
-    return null
+  const extractUpcomingGame = (events, id) => {
+    const now = new Date()
+    const next = (events ?? [])
+      .filter(
+        (e) =>
+          !e.competitions?.[0]?.status?.type?.completed && new Date(e.date) >= now
+      )
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())[0]
+
+    if (!next) return null
+
+    const comp = next.competitions?.[0]
+    const opp = comp?.competitors?.find((c) => c.id !== String(id))
+    const oppName = opp?.team?.displayName
+    if (!oppName) return null
+
+    return {
+      next_matchup: `vs. ${oppName}`,
+      next_matchup_at: new Date(next.date).toISOString(),
+    }
   }
 
-  const json = await res.json()
-  const events = json.events ?? []
-  const now = new Date()
+  const extractEliminatedIfLost = (events, id) => {
+    const completed = (events ?? [])
+      .filter((e) => e.competitions?.[0]?.status?.type?.completed)
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0]
 
-  const upcoming = events
-    .filter((e) => {
-      const d = new Date(e.date)
-      const completed = e.competitions?.[0]?.status?.type?.completed
-      return d >= now || !completed
-    })
-    .sort((a, b) => new Date(a.date) - new Date(b.date))
+    if (!completed) return null
 
-  if (!upcoming.length) return null
+    const comp = completed.competitions?.[0]
+    const competitors = comp?.competitors ?? []
+    const teamComp = competitors.find((c) => c.id === String(id))
+    const oppComp = competitors.find((c) => c.id !== String(id))
 
-  const game = upcoming[0]
-  const comp = game.competitions?.[0]
-  if (!comp) return null
+    const teamScore = teamComp?.score != null ? Number(teamComp.score) : null
+    const oppScore = oppComp?.score != null ? Number(oppComp.score) : null
 
-  const opponent = comp.competitors?.find((c) => c.id !== String(teamId))
-  const opponentName = opponent?.team?.displayName ?? 'TBD'
-  const gameDate = new Date(game.date)
+    if (!Number.isFinite(teamScore) || !Number.isFinite(oppScore)) return null
+    if (teamScore >= oppScore) return null
 
-  return {
-    next_matchup: `vs. ${opponentName}`,
-    next_matchup_at: gameDate.toISOString(),
+    return { next_matchup: 'ELIMINATED', next_matchup_at: null }
+  }
+
+  // 1) Try postseason schedule first
+  try {
+    const postRes = await fetch(`${BASE}/${teamId}/schedule?seasontype=3`, { cache: 'no-store' })
+    if (postRes.ok) {
+      const postJson = await postRes.json()
+      const upcoming = extractUpcomingGame(postJson.events, teamId)
+      if (upcoming) return upcoming
+
+      const eliminated = extractEliminatedIfLost(postJson.events, teamId)
+      if (eliminated) return eliminated
+    }
+  } catch {
+    // ignore and fall back
+  }
+
+  // 2) Fall back to regular season for non-tournament teams
+  try {
+    const regRes = await fetch(`${BASE}/${teamId}/schedule?seasontype=2`, { cache: 'no-store' })
+    if (!regRes.ok) return null
+    const regJson = await regRes.json()
+    return extractUpcomingGame(regJson.events, teamId)
+  } catch {
+    return null
   }
 }
 

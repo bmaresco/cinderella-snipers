@@ -23,9 +23,21 @@ type SortOption = 'name' | 'team' | 'market_cap' | 'next_game'
 
 function formatNextMatchup(matchup: string | null, date: string | null) {
   if (!matchup || matchup === 'TBD') return 'TBD'
+  if (matchup === 'ELIMINATED') return 'ELIMINATED'
   if (!date) return matchup
 
-  const formatted = new Date(date).toLocaleString('en-US', {
+  const dt = new Date(date)
+  const now = new Date()
+
+  const isToday =
+    dt.getFullYear() === now.getFullYear() && dt.getMonth() === now.getMonth() && dt.getDate() === now.getDate()
+
+  if (isToday) {
+    const time = dt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+    return `${matchup} Today, ${time}`
+  }
+
+  const formatted = dt.toLocaleString('en-US', {
     month: 'numeric',
     day: 'numeric',
     hour: 'numeric',
@@ -290,7 +302,7 @@ export default function PlayerList({ players }: { players: Player[] }) {
       {sortedPlayers.map((player) => (
         <div
           key={player.id}
-          className="rounded-[999px] bg-white px-4 py-3 shadow-sm sm:px-5"
+          className="rounded-2xl bg-white px-4 py-3 shadow-sm sm:px-5"
         >
           {/* Mobile layout */}
           <div className="flex flex-col gap-1 sm:hidden">
@@ -333,7 +345,13 @@ export default function PlayerList({ players }: { players: Player[] }) {
               {player.team_name}
             </div>
 
-            <div className="text-[13px] font-semibold text-[#7a7a7a]">
+            <div
+              className={
+                player.next_matchup === 'ELIMINATED'
+                  ? 'text-[13px] font-semibold text-red-600'
+                  : 'text-[13px] font-semibold text-[#7a7a7a]'
+              }
+            >
               {formatNextMatchup(player.next_matchup, player.next_matchup_at)}
             </div>
 
@@ -344,6 +362,8 @@ export default function PlayerList({ players }: { players: Player[] }) {
             {player.clanker_contract_address ? (
               <a
                 href={`https://clanker.world/clanker/${player.clanker_contract_address}`}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="mt-2 block w-full rounded-full bg-black px-5 py-2 text-[13px] font-black text-white transition hover:scale-105 hover:bg-black/90 active:scale-95 text-center"
                 aria-label={`Buy ${player.full_name}`}
               >
@@ -400,7 +420,13 @@ export default function PlayerList({ players }: { players: Player[] }) {
               {player.team_name}
             </div>
 
-            <div className="flex-1 text-[13px] font-semibold text-[#7a7a7a]">
+            <div
+              className={
+                player.next_matchup === 'ELIMINATED'
+                  ? 'flex-1 text-[13px] font-semibold text-red-600'
+                  : 'flex-1 text-[13px] font-semibold text-[#7a7a7a]'
+              }
+            >
               {formatNextMatchup(player.next_matchup, player.next_matchup_at)}
             </div>
 
@@ -411,6 +437,8 @@ export default function PlayerList({ players }: { players: Player[] }) {
             {player.clanker_contract_address ? (
               <a
                 href={`https://clanker.world/clanker/${player.clanker_contract_address}`}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="flex-shrink-0 block rounded-full bg-black px-6 py-2.5 text-[13px] font-black text-white transition hover:scale-105 hover:bg-black/90 active:scale-95 text-center"
                 aria-label={`Buy ${player.full_name}`}
               >
