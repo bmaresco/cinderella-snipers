@@ -27,6 +27,38 @@ function normalizeForTokenMatch(input) {
   return input.toLowerCase().replace(/[^a-z0-9]/g, '')
 }
 
+const NAME_TRAILING_SUFFIXES = new Set(['jr', 'sr', 'ii', 'iii', 'iv', 'v', 'vi'])
+
+function getNameNormCandidates(fullName) {
+  const parts = (fullName ?? '').trim().split(/\s+/).filter(Boolean)
+  const stripped = [...parts]
+
+  // Strip suffixes like "Jr.", "II", "III" so the last name part is correct.
+  while (stripped.length > 0) {
+    const last = stripped[stripped.length - 1] ?? ''
+    const lastNorm = normalizeForTokenMatch(last)
+    if (NAME_TRAILING_SUFFIXES.has(lastNorm)) stripped.pop()
+    else break
+  }
+
+  if (stripped.length === 0) return []
+
+  const first = stripped[0] ?? ''
+  const last1 = stripped[stripped.length - 1] ?? ''
+
+  const set = new Set()
+  if (first && last1) set.add(normalizeForTokenMatch(`${first}${last1}`))
+
+  // If we have a middle name (or compound surname like "Vander Wal" / "De Ridder"),
+  // also try using the last two words.
+  if (stripped.length >= 3) {
+    const last2 = stripped.slice(-2).join(' ')
+    set.add(normalizeForTokenMatch(`${first}${last2}`))
+  }
+
+  return Array.from(set)
+}
+
 // Pull the fields needed to reproduce the app's matching algorithm.
 const { data: players, error: playersErr } = await supabase
   .from('players')
@@ -49,20 +81,20 @@ let unlinkedPlayers = 0
 const usedTokenContracts = new Set()
 
 for (const p of players) {
-  const nameParts = p.full_name.trim().split(/\s+/).filter(Boolean)
-  const first = nameParts[0] ?? ''
-  const last = nameParts[nameParts.length - 1] ?? ''
-  const firstLastNorm = normalizeForTokenMatch(`${first}${last}`)
   const teamNorm = normalizeForTokenMatch(p.team_name)
+  const nameNormCandidates = getNameNormCandidates(p.full_name)
 
   let bestScore = 0
   let bestToken = null
 
   for (const dt of deployedForMatch) {
     const tokenNorm = dt.nameNorm
+    const nameMatches = nameNormCandidates.some((n) => n && tokenNorm.includes(n))
+    const teamMatches = teamNorm ? tokenNorm.includes(teamNorm) : false
+
     let score = 0
-    if (tokenNorm.includes(firstLastNorm) && tokenNorm.includes(teamNorm)) score = 10
-    else if (tokenNorm.includes(firstLastNorm) || tokenNorm.includes(teamNorm)) score = 5
+    if (nameMatches && teamMatches) score = 10
+    else if (nameMatches || teamMatches) score = 5
 
     if (score > bestScore) {
       bestScore = score
