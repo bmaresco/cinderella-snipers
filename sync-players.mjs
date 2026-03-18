@@ -97,12 +97,29 @@ async function fetchNextGame(teamId) {
 
   const extractUpcomingGame = (events, id) => {
     const now = new Date()
+    const nowMs = now.getTime()
+
+    const getEventStartMs = (e) => {
+      const dateStr =
+        e?.date ??
+        e?.competitions?.[0]?.date ??
+        e?.competitions?.[0]?.startDate ??
+        e?.competitions?.[0]?.status?.date
+
+      if (!dateStr) return null
+      const dt = new Date(dateStr)
+      const ms = dt.getTime()
+      return Number.isFinite(ms) ? ms : null
+    }
+
     const next = (events ?? [])
       .filter(
         (e) =>
-          !e.competitions?.[0]?.status?.type?.completed && new Date(e.date) >= now
+          !e.competitions?.[0]?.status?.type?.completed &&
+          getEventStartMs(e) != null &&
+          (getEventStartMs(e) >= nowMs)
       )
-      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())[0]
+      .sort((a, b) => (getEventStartMs(a) ?? 0) - (getEventStartMs(b) ?? 0))[0]
 
     if (!next) return null
 
@@ -113,14 +130,32 @@ async function fetchNextGame(teamId) {
 
     return {
       next_matchup: `vs. ${oppName}`,
-      next_matchup_at: new Date(next.date).toISOString(),
+      next_matchup_at: (() => {
+        const ms = getEventStartMs(next)
+        return ms == null ? null : new Date(ms).toISOString()
+      })(),
     }
   }
 
   const extractEliminatedIfLost = (events, id) => {
     const completed = (events ?? [])
       .filter((e) => e.competitions?.[0]?.status?.type?.completed)
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0]
+      .sort((a, b) => {
+        const aDateStr =
+          a?.date ??
+          a?.competitions?.[0]?.date ??
+          a?.competitions?.[0]?.startDate ??
+          a?.competitions?.[0]?.status?.date
+        const bDateStr =
+          b?.date ??
+          b?.competitions?.[0]?.date ??
+          b?.competitions?.[0]?.startDate ??
+          b?.competitions?.[0]?.status?.date
+
+        const aMs = aDateStr ? new Date(aDateStr).getTime() : -Infinity
+        const bMs = bDateStr ? new Date(bDateStr).getTime() : -Infinity
+        return (Number.isFinite(bMs) ? bMs : -Infinity) - (Number.isFinite(aMs) ? aMs : -Infinity)
+      })[0]
 
     if (!completed) return null
 

@@ -35,15 +35,31 @@ async function fetchNextGameForTeam(teamId: string) {
 
   const extractNextGameOrEliminated = (events: any[] | undefined, id: string) => {
     const now = new Date()
+    const nowMs = now.getTime()
+
+    const getEventStartMs = (e: any): number | null => {
+      const dateStr =
+        e?.date ??
+        e?.competitions?.[0]?.date ??
+        e?.competitions?.[0]?.startDate ??
+        e?.competitions?.[0]?.status?.date
+
+      if (!dateStr) return null
+      const dt = new Date(dateStr)
+      const ms = dt.getTime()
+      return Number.isFinite(ms) ? ms : null
+    }
+
     const next = (events ?? [])
       .filter(
         (e) =>
           !e.competitions?.[0]?.status?.type?.completed &&
-          new Date(e.date) >= now
+          getEventStartMs(e) != null &&
+          (getEventStartMs(e) as number) >= nowMs
       )
       .sort(
         (a, b) =>
-          new Date(a.date).getTime() - new Date(b.date).getTime()
+          (getEventStartMs(a) as number) - (getEventStartMs(b) as number)
       )[0]
 
     if (!next) return null
@@ -53,7 +69,9 @@ async function fetchNextGameForTeam(teamId: string) {
     const oppName: string =
       opp?.team?.displayName ?? opp?.team?.shortDisplayName ?? opp?.team?.abbreviation ?? 'TBD'
 
-    const date = new Date(next.date)
+    const dateMs = getEventStartMs(next)
+    if (dateMs == null) return null
+    const date = new Date(dateMs)
     return {
       text: `vs. ${oppName}`,
       date: date.toISOString(),
@@ -75,7 +93,8 @@ async function fetchNextGameForTeam(teamId: string) {
         // No upcoming game found; check if the most recent completed postseason game was a loss.
         const completed = (postJson.events ?? [])
           .filter((e: any) => e.competitions?.[0]?.status?.type?.completed)
-          .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime())[0]
+          .filter((e: any) => getEventStartMs(e) != null)
+          .sort((a: any, b: any) => (getEventStartMs(b) as number) - (getEventStartMs(a) as number))[0]
 
         if (!completed) return null
 
