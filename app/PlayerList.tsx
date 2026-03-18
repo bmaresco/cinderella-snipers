@@ -30,11 +30,13 @@ function formatNextMatchup(matchup: string | null, date: string | null) {
   const now = new Date()
 
   const isToday =
-    dt.getFullYear() === now.getFullYear() && dt.getMonth() === now.getMonth() && dt.getDate() === now.getDate()
+    dt.getUTCFullYear() === now.getUTCFullYear() &&
+    dt.getUTCMonth() === now.getUTCMonth() &&
+    dt.getUTCDate() === now.getUTCDate()
 
   if (isToday) {
     const time = dt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
-    return `${matchup} Today, ${time}`
+    return `${matchup} Today ${time}`
   }
 
   const formatted = dt.toLocaleString('en-US', {
@@ -299,11 +301,16 @@ export default function PlayerList({ players }: { players: Player[] }) {
         <div className="w-[80px] flex-shrink-0"></div>
       </div>
 
-      {sortedPlayers.map((player) => (
-        <div
-          key={player.id}
-          className="rounded-2xl bg-white px-4 py-3 shadow-sm sm:rounded-[999px] sm:px-5"
-        >
+      {sortedPlayers.map((player) => {
+        const isUmbc = player.school_name === 'UMBC Retrievers'
+        const nextMatchupForRender = isUmbc ? 'ELIMINATED' : player.next_matchup
+        const nextMatchupAtForRender = isUmbc ? null : player.next_matchup_at
+
+        return (
+          <div
+            key={player.id}
+            className="rounded-2xl bg-white px-4 py-3 shadow-sm sm:rounded-[999px] sm:px-5"
+          >
           {/* Mobile layout */}
           <div className="flex flex-col gap-1 sm:hidden">
             <div className="flex items-center gap-3">
@@ -347,12 +354,12 @@ export default function PlayerList({ players }: { players: Player[] }) {
 
             <div
               className={
-                player.next_matchup === 'ELIMINATED'
+                nextMatchupForRender === 'ELIMINATED'
                   ? 'text-[13px] font-semibold text-red-600'
                   : 'text-[13px] font-semibold text-[#7a7a7a]'
               }
             >
-              {formatNextMatchup(player.next_matchup, player.next_matchup_at)}
+              {formatNextMatchup(nextMatchupForRender, nextMatchupAtForRender)}
             </div>
 
             <div className="text-[13px] font-semibold text-[#7a7a7a]">
@@ -422,12 +429,12 @@ export default function PlayerList({ players }: { players: Player[] }) {
 
             <div
               className={
-                player.next_matchup === 'ELIMINATED'
+                nextMatchupForRender === 'ELIMINATED'
                   ? 'flex-1 text-[13px] font-semibold text-red-600'
                   : 'flex-1 text-[13px] font-semibold text-[#7a7a7a]'
               }
             >
-              {formatNextMatchup(player.next_matchup, player.next_matchup_at)}
+              {formatNextMatchup(nextMatchupForRender, nextMatchupAtForRender)}
             </div>
 
             <div className="flex-1 text-[13px] font-semibold text-[#7a7a7a]">
@@ -454,8 +461,9 @@ export default function PlayerList({ players }: { players: Player[] }) {
               </button>
             )}
           </div>
-        </div>
-      ))}
+          </div>
+        )
+      })}
     </div>
   )
 }
