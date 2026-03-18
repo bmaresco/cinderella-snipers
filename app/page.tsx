@@ -84,8 +84,9 @@ async function fetchNextGameForTeam(teamId: string) {
         const teamComp = competitors.find((c: any) => c.id === String(teamId))
         const oppComp = competitors.find((c: any) => c.id !== String(teamId))
 
-        const teamScore = teamComp?.score != null ? Number(teamComp.score) : null
-        const oppScore = oppComp?.score != null ? Number(oppComp.score) : null
+        // Use NaN so TypeScript can safely narrow to `number` after the checks below.
+        const teamScore = teamComp?.score != null ? Number(teamComp.score) : NaN
+        const oppScore = oppComp?.score != null ? Number(oppComp.score) : NaN
 
         if (!Number.isFinite(teamScore) || !Number.isFinite(oppScore)) return null
         if (teamScore >= oppScore) return null
@@ -112,6 +113,11 @@ async function fetchNextGameForTeam(teamId: string) {
 }
 
 async function getPlayers(): Promise<Player[]> {
+  if (!supabase) {
+    console.warn('Supabase is not configured (missing NEXT_PUBLIC_SUPABASE_URL/KEY). Returning empty players.')
+    return []
+  }
+
   const { data, error } = await supabase
     .from('players')
     .select('*')

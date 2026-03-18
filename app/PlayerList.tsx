@@ -302,7 +302,7 @@ export default function PlayerList({ players }: { players: Player[] }) {
       {sortedPlayers.map((player) => (
         <div
           key={player.id}
-          className="rounded-2xl bg-white px-4 py-3 shadow-sm sm:px-5"
+          className="rounded-2xl bg-white px-4 py-3 shadow-sm sm:rounded-[999px] sm:px-5"
         >
           {/* Mobile layout */}
           <div className="flex flex-col gap-1 sm:hidden">
