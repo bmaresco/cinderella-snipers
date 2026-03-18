@@ -33,22 +33,22 @@ async function fetchNextGameForTeam(teamId: string) {
   const BASE =
     'https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/teams'
 
+  const getEventStartMs = (e: any): number | null => {
+    const dateStr =
+      e?.date ??
+      e?.competitions?.[0]?.date ??
+      e?.competitions?.[0]?.startDate ??
+      e?.competitions?.[0]?.status?.date
+
+    if (!dateStr) return null
+    const dt = new Date(dateStr)
+    const ms = dt.getTime()
+    return Number.isFinite(ms) ? ms : null
+  }
+
   const extractNextGameOrEliminated = (events: any[] | undefined, id: string) => {
     const now = new Date()
     const nowMs = now.getTime()
-
-    const getEventStartMs = (e: any): number | null => {
-      const dateStr =
-        e?.date ??
-        e?.competitions?.[0]?.date ??
-        e?.competitions?.[0]?.startDate ??
-        e?.competitions?.[0]?.status?.date
-
-      if (!dateStr) return null
-      const dt = new Date(dateStr)
-      const ms = dt.getTime()
-      return Number.isFinite(ms) ? ms : null
-    }
 
     const next = (events ?? [])
       .filter(
