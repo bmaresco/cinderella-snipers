@@ -248,7 +248,7 @@ export default function PlayerList({ players }: { players: Player[] }) {
               {player.market_cap_text ?? '—'}
             </div>
 
-            <button className="mt-2 w-full rounded-full bg-black px-5 py-2 text-[13px] font-black text-white transition hover:scale-105 hover:bg-black/90 active:scale-95">
+            <button className="mt-2 w-[70%] self-center rounded-full bg-black px-5 py-2 text-[13px] font-black text-white transition hover:bg-black/90 active:scale-95">
               BUY
             </button>
           </div>
