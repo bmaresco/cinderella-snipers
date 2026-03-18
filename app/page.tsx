@@ -103,9 +103,16 @@ async function fetchNextGameForTeam(teamId: string) {
         const teamComp = competitors.find((c: any) => c.id === String(teamId))
         const oppComp = competitors.find((c: any) => c.id !== String(teamId))
 
+        const scoreToNumber = (score: any): number => {
+          if (score == null) return NaN
+          if (typeof score === 'number') return score
+          if (typeof score === 'object' && score.value != null) return Number(score.value)
+          return Number(score)
+        }
+
         // Use NaN so TypeScript can safely narrow to `number` after the checks below.
-        const teamScore = teamComp?.score != null ? Number(teamComp.score) : NaN
-        const oppScore = oppComp?.score != null ? Number(oppComp.score) : NaN
+        const teamScore = scoreToNumber(teamComp?.score)
+        const oppScore = scoreToNumber(oppComp?.score)
 
         if (!Number.isFinite(teamScore) || !Number.isFinite(oppScore)) return null
         if (teamScore >= oppScore) return null

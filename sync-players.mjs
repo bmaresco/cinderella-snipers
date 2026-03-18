@@ -91,6 +91,40 @@ const TEAM_IDS = {
   'Wright State Raiders': 2750,
 }
 
+function normalizeTeamName(input) {
+  return (input ?? '')
+    .toString()
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '')
+}
+
+async function fetchEspnTeamIdIndex() {
+  const url = 'https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/teams'
+  const res = await fetch(url, { cache: 'no-store' })
+  if (!res.ok) return { byDisplayName: new Map(), byNormalizedDisplayName: new Map() }
+  const json = await res.json()
+
+  const teams =
+    json?.sports?.[0]?.leagues?.[0]?.teams ??
+    json?.sports?.[0]?.leagues?.flatMap((l) => l?.teams ?? []).flat() ??
+    []
+
+  const byDisplayName = new Map()
+  const byNormalizedDisplayName = new Map()
+
+  for (const t of teams) {
+    const team = t?.team
+    const id = team?.id
+    const displayName = team?.displayName
+    if (!id || !displayName) continue
+
+    byDisplayName.set(displayName, String(id))
+    byNormalizedDisplayName.set(normalizeTeamName(displayName), String(id))
+  }
+
+  return { byDisplayName, byNormalizedDisplayName }
+}
+
 async function fetchNextGame(teamId) {
   const BASE =
     'https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/teams'
@@ -164,10 +198,18 @@ async function fetchNextGame(teamId) {
     const teamComp = competitors.find((c) => c.id === String(id))
     const oppComp = competitors.find((c) => c.id !== String(id))
 
-    const teamScore = teamComp?.score != null ? Number(teamComp.score) : null
-    const oppScore = oppComp?.score != null ? Number(oppComp.score) : null
+    const scoreToNumber = (score) => {
+      if (score == null) return null
+      if (typeof score === 'number') return score
+      if (typeof score === 'object' && score.value != null) return Number(score.value)
+      const n = Number(score)
+      return Number.isFinite(n) ? n : null
+    }
 
-    if (!Number.isFinite(teamScore) || !Number.isFinite(oppScore)) return null
+    const teamScore = scoreToNumber(teamComp?.score)
+    const oppScore = scoreToNumber(oppComp?.score)
+
+    if (teamScore == null || oppScore == null) return null
     if (teamScore >= oppScore) return null
 
     return { next_matchup: 'ELIMINATED', next_matchup_at: null }
@@ -202,6 +244,8 @@ async function fetchNextGame(teamId) {
 async function main() {
   console.log('🏀 Starting player sync...\n')
 
+  const espnTeamIndex = await fetchEspnTeamIdIndex()
+
   const { data: rows, error } = await supabase
     .from('players')
     .select('school_name')
@@ -220,7 +264,9 @@ async function main() {
   const notInMap = []
 
   for (const school of schools) {
-    const teamId = TEAM_IDS[school]
+    const direct = espnTeamIndex.byDisplayName.get(school)
+    const normalized = espnTeamIndex.byNormalizedDisplayName.get(normalizeTeamName(school))
+    const teamId = direct ?? normalized ?? TEAM_IDS[school]
 
     if (!teamId) {
       notInMap.push(school)
